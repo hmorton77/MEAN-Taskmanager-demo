@@ -3,8 +3,6 @@ const app = express();
 
 const { mongoose } = require("./db/mongoose");
 
-const bodyParser = require("body-parser");
-
 //load in mongoose moderls
 // can also import each individual const and pull the files.
 const { List, Task } = require("./db/models");
@@ -12,11 +10,19 @@ const { List, Task } = require("./db/models");
 //load middleware
 app.use(express.json());
 
+//enable CORS to prevent errors&&&&&&&&&&&&&&&&&&&&&&&
+app.use(function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
 // route handling here:
 
-//
+//##################################
 // LIST ROUTES:
-//
+//##################################
 
 // GET /lists -> get all lists
 app.get("/lists", (req, res) => {
@@ -64,18 +70,31 @@ app.delete("/lists/:id", (req, res) => {
   });
 });
 
-//
+//##########################################
+
+////////////////////////////////////////////
 //TASK ROUTES:
-//
+////////////////////////////////////////////
 
 //GET /lists/:listId/tasks
 // Purpose GET all tasks in a specified list
-app.get("./lists/:listId/tasks", (req, res) => {
+app.get("/lists/:listId/tasks", (req, res) => {
   //we want to return all tasks that belong to a specific list (specified by listId)
   Task.find({
     _listId: req.params.listId,
   }).then((tasks) => {
     res.send(tasks);
+  });
+});
+
+//GET /lists/:listId/tasks/:taskId
+// Purpose: GET specified tasks in a list, specified by taskId
+app.get("/lists/:listId/tasks/:taskId", (req, res) => {
+  Task.findOne({
+    _id: req.params.taskId,
+    _listId: req.params.listId,
+  }).then((task) => {
+    res.send(task);
   });
 });
 
@@ -91,6 +110,35 @@ app.post("/lists/:listId/tasks", (req, res) => {
     res.send(newTaskDoc);
   });
 });
+
+//PATH ROUTE for /lists/:listId/tasks/:taskId
+//purpose: update an existing task
+
+app.patch("/lists/:listId/tasks/:taskId", (req, res) => {
+  //update an existing task specified by taskId
+  Task.findOneAndUpdate(
+    {
+      _id: req.params.taskId,
+      _listId: req.params.listId,
+    },
+    {
+      $set: req.body,
+    }
+  ).then(() => {
+    res.sendStatus(200);
+  });
+});
+
+//DELETE ROUTE for /lists/:listId/tasks/taskId
+//delete specified task
+
+app.delete("/lists/:listId/tasks/:taskId", (req, res) => {
+  Task.findOneAndRemove({ _id: req.params.taskId, _listId: req.params.listId }).then((removedTaskDoc) => {
+    res.send(removedTaskDoc);
+  });
+});
+
+//////////////////////////////////////////
 
 // 3000 is where our api backend will be
 app.listen(3000, () => {
